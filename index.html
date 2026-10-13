@@ -1,0 +1,965 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Operation Colour Code: Cyberaya Highway Chase</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            -webkit-touch-callout: none;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #030712;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        .cyber-border {
+            border: 2px solid #00f0ff;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+        .cyber-border-magenta {
+            border: 2px solid #ff007f;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.2);
+        }
+        .cyber-border-yellow {
+            border: 2px solid #d6ff38;
+            box-shadow: 0 0 15px rgba(214, 255, 56, 0.4), inset 0 0 10px rgba(214, 255, 56, 0.2);
+        }
+        .glow-text {
+            text-shadow: 0 0 8px currentColor;
+        }
+        .word-tile {
+            transition: all 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .word-tile:active {
+            transform: scale(0.92);
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(0,240,255,0.4); }
+            50% { box-shadow: 0 0 22px rgba(0,240,255,0.8); }
+        }
+        .pulse-cyber {
+            animation: pulseGlow 2s infinite;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between items-center relative h-screen w-screen overflow-hidden text-white bg-slate-950">
+
+    <!-- Canvas Background -->
+    <div class="absolute inset-0 z-0 bg-slate-950">
+        <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+    </div>
+
+    <!-- MATA Top Agent HUD Header -->
+    <header class="w-full max-w-5xl z-10 flex justify-between items-center p-2.5 sm:p-4 bg-slate-950/85 backdrop-blur-md border-b-2 border-cyan-500/50 shadow-2xl">
+        <div class="flex items-center space-x-2.5 sm:space-x-3">
+            <!-- Animated Agent Expressive Avatar -->
+            <div id="avatar-box" class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-slate-900 cyber-border flex items-center justify-center relative overflow-hidden flex-shrink-0">
+                <svg id="agent-avatar-svg" class="w-9 h-9 sm:w-10 sm:h-10 text-cyan-300 transition-transform duration-300" viewBox="0 0 100 100">
+                    <!-- Base Helmet -->
+                    <circle cx="50" cy="50" r="38" fill="#0f172a" stroke="#00f0ff" stroke-width="4"/>
+                    <!-- Shoulder Armor -->
+                    <path d="M 20 88 C 20 70, 80 70, 80 88 Z" fill="#1e293b" stroke="#00f0ff" stroke-width="3"/>
+                    <!-- Interactive Helmet Visor -->
+                    <rect id="avatar-visor" x="22" y="36" width="56" height="22" rx="8" fill="#d6ff38"/>
+                    <!-- Visor Eyeline Glow -->
+                    <line id="avatar-eyes" x1="28" y1="47" x2="72" y2="47" stroke="#090d16" stroke-width="4" stroke-linecap="round"/>
+                </svg>
+                <span id="shield-indicator" class="absolute bottom-1 right-1 w-3 h-3 bg-cyan-400 rounded-full border border-slate-950 animate-ping"></span>
+            </div>
+            
+            <div class="overflow-hidden">
+                <div class="flex items-center space-x-1.5">
+                    <span class="text-[10px] sm:text-xs font-orbitron font-extrabold text-pink-500 tracking-wider">MATA HQ //</span>
+                    <span id="hud-agent-name" class="text-xs sm:text-sm font-orbitron font-black text-cyan-300 truncate">AGENT ALI</span>
+                </div>
+                <div class="flex items-center space-x-2 mt-0.5">
+                    <div class="w-16 sm:w-24 h-2 bg-slate-800 rounded-full overflow-hidden border border-cyan-500/30">
+                        <div id="shield-bar" class="h-full bg-gradient-to-r from-cyan-400 to-green-400 w-full transition-all duration-300"></div>
+                    </div>
+                    <span class="text-[10px] font-orbitron text-slate-400 font-bold">SHIELD</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- HUD Statistics -->
+        <div class="flex items-center space-x-3 sm:space-x-6">
+            <div class="text-right">
+                <div class="text-[9px] sm:text-[10px] text-pink-400 font-orbitron font-bold">SCORE</div>
+                <div id="score-display" class="text-base sm:text-xl font-orbitron font-black text-pink-300 glow-text">0000</div>
+            </div>
+            <div class="text-right">
+                <div class="text-[9px] sm:text-[10px] text-green-400 font-orbitron font-bold">DRONES</div>
+                <div id="progress-display" class="text-base sm:text-xl font-orbitron font-black text-green-300 glow-text">1/20</div>
+            </div>
+            <button id="audio-toggle" class="p-2 sm:p-2.5 rounded-xl bg-slate-900 border border-cyan-500/50 text-cyan-300 hover:bg-cyan-950 transition-all active:scale-95" title="Audio Toggle">
+                <svg id="audio-icon" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Interactive Layer & Sentence Word Arrangement Modals -->
+    <main class="w-full max-w-4xl flex-1 flex flex-col items-center justify-center z-10 relative px-3 pointer-events-none">
+
+        <!-- 1. Interactive Word Arrangement HACK Modal -->
+        <div id="battle-modal" class="hidden absolute inset-0 z-30 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-3 sm:p-4 pointer-events-auto">
+            <div class="bg-slate-900/95 border-2 border-cyan-400 rounded-2xl p-4 sm:p-6 max-w-lg w-full cyber-border shadow-2xl relative flex flex-col justify-between max-h-[92vh] overflow-y-auto">
+                
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between border-b border-cyan-500/30 pb-2 mb-3">
+                    <span class="bg-cyan-500 text-slate-950 text-[10px] sm:text-xs font-orbitron px-2.5 py-1 rounded-full uppercase tracking-widest font-black animate-pulse">
+                        🚨 Drone Intercepted // Round <span id="challenge-round-num">1</span>
+                    </span>
+                    <span id="agent-callsign-badge" class="text-xs font-orbitron text-pink-400 font-bold">AGENT ONLINE</span>
+                </div>
+                
+                <div class="text-center my-1">
+                    <div id="challenge-emoji" class="text-5xl sm:text-6xl my-1 filter drop-shadow-[0_0_12px_rgba(0,240,255,0.6)]">🧥</div>
+                    <div id="item-name-tag" class="text-xs sm:text-sm font-orbitron text-cyan-300 font-bold uppercase mb-2">RED JACKET</div>
+                    <p class="text-xs text-slate-300 mb-2 font-medium">Tap tiles to unscramble the MATA firewall code:</p>
+
+                    <!-- Target Sentence Slots -->
+                    <div class="bg-slate-950/90 p-3 sm:p-4 rounded-xl border-2 border-pink-500/50 min-h-[70px] sm:min-h-[80px] flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mb-3 cyber-border-magenta">
+                        <div id="constructed-slots" class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 w-full">
+                            <!-- Injected Placed Word Tiles -->
+                        </div>
+                    </div>
+
+                    <!-- Scrambled Word Pool -->
+                    <div class="bg-slate-950/50 p-2.5 sm:p-3 rounded-xl border border-cyan-500/30 min-h-[60px] flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+                        <div id="scrambled-pool" class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 w-full">
+                            <!-- Injected Scrambled Word Tiles -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback & Action Control Buttons -->
+                <div class="mt-3">
+                    <div id="feedback-msg" class="text-center text-xs sm:text-sm font-extrabold min-h-[22px] mb-2"></div>
+
+                    <div class="grid grid-cols-2 gap-2 sm:gap-3">
+                        <button id="btn-clear-tiles" class="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-pink-500/60 text-pink-300 font-orbitron font-bold text-xs sm:text-sm transition-all active:scale-95 shadow-md">
+                            🔄 RESET TILES
+                        </button>
+                        <button id="btn-submit-hack" class="py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-orbitron font-black text-xs sm:text-sm transition-all active:scale-95 shadow-lg shadow-cyan-500/30">
+                            ⚡ SUBMIT HACK
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Agent Login & Codename Modal -->
+        <div id="login-modal" class="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-4 pointer-events-auto">
+            <div class="bg-slate-900 border-2 border-cyan-400 rounded-3xl p-6 sm:p-8 max-w-md w-full cyber-border text-center shadow-2xl relative">
+                
+                <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-900 border-2 border-cyan-300 flex items-center justify-center text-cyan-200 pulse-cyber">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="4" stroke-width="2"></circle>
+                        <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" stroke-width="2"></path>
+                    </svg>
+                </div>
+
+                <h2 class="text-2xl sm:text-3xl font-orbitron font-black text-cyan-400 mb-1">MATA AGENT LOGIN</h2>
+                <p class="text-xs text-pink-400 font-orbitron mb-5 font-bold">CYBERAYA HIGHWAY CHASE // AUTHENTICATION</p>
+                
+                <div class="bg-slate-950 p-4 rounded-2xl mb-6 border border-cyan-500/30 text-left">
+                    <label class="block text-xs font-orbitron text-cyan-300 font-bold mb-2 uppercase">Enter Agent Codename:</label>
+                    <input type="text" id="agent-name-input" maxlength="16" placeholder="Agent Ali" value="Agent Ali" class="w-full bg-slate-900 border-2 border-cyan-500 rounded-xl px-4 py-3 text-cyan-200 font-orbitron font-bold focus:outline-none focus:border-pink-500 transition-all text-center text-lg placeholder-slate-600">
+                    <p class="text-[11px] text-slate-400 mt-2">Example: Agent Ali, Agent Zulaikha, Agent Bakar</p>
+                </div>
+
+                <button id="btn-agent-login" class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-400 via-blue-600 to-indigo-600 hover:from-cyan-300 hover:to-indigo-500 text-slate-950 font-orbitron font-black text-lg shadow-xl shadow-cyan-500/40 transition-all active:scale-95">
+                    AUTHENTICATE AGENT ▶
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. Mission Start Briefing Modal -->
+        <div id="start-screen" class="hidden absolute inset-0 z-30 flex items-center justify-center bg-slate-950/95 backdrop-blur-md p-4 pointer-events-auto">
+            <div class="bg-slate-900 border-2 border-cyan-400 rounded-3xl p-6 sm:p-8 max-w-lg w-full cyber-border text-center shadow-2xl">
+                <div class="text-xs text-pink-400 font-orbitron font-bold mb-1">CYBERAYA FIREWALL DIRECTIVE</div>
+                <h2 id="briefing-agent-title" class="text-2xl sm:text-3xl font-orbitron font-black text-cyan-400 mb-3">WELCOME, AGENT ALI</h2>
+                
+                <div class="bg-slate-950 p-4 rounded-2xl text-left text-xs sm:text-sm text-slate-300 space-y-2.5 mb-6 border border-cyan-500/30">
+                    <p>🏎️ <b class="text-cyan-300">Steer Aero-Bike:</b> Navigate across 3 highway lanes to intercept rogue malware drones.</p>
+                    <p>🧩 <b class="text-pink-300">Word Unscramble:</b> Tap word tiles to assemble the correct singular (<i class="text-cyan-200">This is a...</i>) or plural (<i class="text-pink-200">These are...</i>) clothing sentences.</p>
+                    <p>⚡ <b class="text-green-300">Controls:</b> Tap Left/Right buttons, swipe screen, or use WASD / Arrow keys.</p>
+                </div>
+
+                <button id="start-btn" class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-400 via-blue-600 to-indigo-600 hover:from-cyan-300 hover:to-indigo-500 text-slate-950 font-orbitron font-black text-lg shadow-xl shadow-cyan-500/40 transition-all active:scale-95">
+                    🚀 LAUNCH MISSION NOW
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. Mission Accomplished / Game Over Modal -->
+        <div id="game-over-modal" class="hidden absolute inset-0 z-40 flex items-center justify-center bg-slate-950/90 backdrop-blur-lg p-4 pointer-events-auto">
+            <div class="bg-slate-900 border-2 border-cyan-400 rounded-3xl p-6 sm:p-8 max-w-md w-full cyber-border text-center shadow-2xl">
+                <h2 id="modal-title" class="text-2xl sm:text-3xl font-orbitron font-black text-cyan-400 mb-1">MISSION ACCOMPLISHED!</h2>
+                <p id="modal-subtitle" class="text-slate-300 text-xs sm:text-sm mb-4">Cyberaya Skyway firewall status secured!</p>
+                
+                <div class="bg-slate-950 p-4 rounded-2xl mb-6 border border-cyan-500/30 space-y-2 text-left">
+                    <div class="flex justify-between text-xs sm:text-sm">
+                        <span class="text-slate-400 font-orbitron">MATA Agent:</span>
+                        <span id="report-agent-name" class="font-bold text-cyan-300 font-orbitron">AGENT ALI</span>
+                    </div>
+                    <div class="flex justify-between text-xs sm:text-sm">
+                        <span class="text-slate-400 font-orbitron">Final Score:</span>
+                        <span id="final-score" class="font-bold text-pink-400 font-orbitron text-lg">0</span>
+                    </div>
+                    <div class="flex justify-between text-xs sm:text-sm">
+                        <span class="text-slate-400 font-orbitron">Agent High Score:</span>
+                        <span id="high-score" class="font-bold text-cyan-300 font-orbitron text-lg">0</span>
+                    </div>
+                </div>
+
+                <button id="restart-btn" class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-orbitron font-black text-lg shadow-xl shadow-cyan-500/30 transition-all active:scale-95">
+                    🚀 LAUNCH NEW MISSION
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Controls & Steering Bar -->
+    <footer class="w-full max-w-5xl z-10 p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md border-t-2 border-cyan-500/50 flex justify-between items-center pointer-events-auto">
+        <div class="flex space-x-2 sm:space-x-3">
+            <button id="btn-left" class="w-16 sm:w-20 h-14 bg-slate-900 hover:bg-slate-800 border-2 border-cyan-400 rounded-xl text-cyan-300 font-black text-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all">
+                ◀
+            </button>
+            <button id="btn-right" class="w-16 sm:w-20 h-14 bg-slate-900 hover:bg-slate-800 border-2 border-cyan-400 rounded-xl text-cyan-300 font-black text-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all">
+                ▶
+            </button>
+        </div>
+
+        <div class="text-center hidden sm:block">
+            <span class="text-xs text-cyan-300 font-orbitron font-bold">STEER AERO-BIKE // SWIPE OR KEYS</span>
+        </div>
+
+        <div>
+            <button id="btn-nitro" class="px-5 sm:px-8 h-14 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 border-2 border-pink-400 rounded-xl text-white font-orbitron font-black text-xs sm:text-sm tracking-wider flex items-center justify-center shadow-lg shadow-pink-500/30 active:scale-95 transition-all">
+                ⚡ NITRO BOOST
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // --- Web Audio Synthesizer Engine ---
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playEngineHum() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(80, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(170, this.ctx.currentTime + 0.12);
+                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.12);
+                } catch(e){}
+            }
+            playTileClick() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(420, now);
+                    osc.frequency.setValueAtTime(620, now + 0.05);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } catch(e){}
+            }
+            playCorrect() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    osc.frequency.setValueAtTime(1046.50, now + 0.3);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                } catch(e){}
+            }
+            playWrong() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.setValueAtTime(110, now + 0.15);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } catch(e){}
+            }
+            playNitro() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(550, now + 0.35);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } catch(e){}
+            }
+        }
+
+        const soundFX = new SoundFX();
+
+        // --- MATA Singular vs Plural Clothing Database (Strictly Colour Adjectives across all 20 rounds) ---
+        const grammarChallenges = [
+            { item: "Shirt", emoji: "👕", tag: "Red Shirt", targetSentence: ["This", "is", "a", "red", "shirt."] },
+            { item: "Jeans", emoji: "👖", tag: "Blue Jeans", targetSentence: ["These", "are", "blue", "jeans."] },
+            { item: "Cap", emoji: "🧢", tag: "Yellow Cap", targetSentence: ["This", "is", "a", "yellow", "cap."] },
+            { item: "Sneakers", emoji: "👟", tag: "White Sneakers", targetSentence: ["These", "are", "white", "sneakers."] },
+            { item: "Jacket", emoji: "🧥", tag: "Green Jacket", targetSentence: ["This", "is", "a", "green", "jacket."] },
+            { item: "Socks", emoji: "🧦", tag: "Black Socks", targetSentence: ["These", "are", "black", "socks."] },
+            { item: "Scarf", emoji: "🧣", tag: "Pink Scarf", targetSentence: ["This", "is", "a", "pink", "scarf."] },
+            { item: "Gloves", emoji: "🧤", tag: "Purple Gloves", targetSentence: ["These", "are", "purple", "gloves."] },
+            { item: "Dress", emoji: "👗", tag: "Orange Dress", targetSentence: ["This", "is", "an", "orange", "dress."] },
+            { item: "Shorts", emoji: "🩳", tag: "Brown Shorts", targetSentence: ["These", "are", "brown", "shorts."] },
+            { item: "T-Shirt", emoji: "👚", tag: "Purple T-Shirt", targetSentence: ["This", "is", "a", "purple", "t-shirt."] },
+            { item: "Boots", emoji: "🥾", tag: "Black Boots", targetSentence: ["These", "are", "black", "boots."] },
+            { item: "Hat", emoji: "👒", tag: "Yellow Hat", targetSentence: ["This", "is", "a", "yellow", "hat."] },
+            { item: "Glasses", emoji: "🕶️", tag: "Brown Glasses", targetSentence: ["These", "are", "brown", "glasses."] },
+            { item: "Coat", emoji: "🧥", tag: "Red Coat", targetSentence: ["This", "is", "a", "red", "coat."] },
+            { item: "Pants", emoji: "👖", tag: "Green Pants", targetSentence: ["These", "are", "green", "pants."] },
+            { item: "Sweater", emoji: "🧶", tag: "Blue Sweater", targetSentence: ["This", "is", "a", "blue", "sweater."] },
+            { item: "Shoes", emoji: "👞", tag: "White Shoes", targetSentence: ["These", "are", "white", "shoes."] },
+            { item: "Tie", emoji: "👔", tag: "Orange Tie", targetSentence: ["This", "is", "an", "orange", "tie."] },
+            { item: "Sandals", emoji: "🩴", tag: "Pink Sandals", targetSentence: ["These", "are", "pink", "sandals."] }
+        ];
+
+        // --- Core Application State ---
+        let agentName = "Agent Ali";
+        let gameState = 'LOGIN'; // LOGIN, START, PLAYING, BATTLE, VICTORY
+        let score = 0;
+        let currentRound = 1;
+        const totalRounds = 20;
+        let shield = 100;
+        let highScore = localStorage.getItem('cyberaya_highscore_v3') || 0;
+        
+        // Unscramble Puzzle Word Arrays
+        let activeChallenge = null;
+        let scrambledTiles = [];
+        let placedTiles = [];
+
+        // Player & Canvas Mechanics
+        let playerLane = 1; // 0: Left, 1: Center, 2: Right
+        let playerX = 0;
+        let playerY = 0;
+        let laneLean = 0;
+        let isNitro = false;
+        let nitroTimer = 0;
+        let animTick = 0;
+
+        let roadOffset = 0;
+        let speed = 7;
+        let stars = [];
+        let buildings = [];
+        let drones = [];
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function setAgentExpression(expression) {
+            const visor = document.getElementById('avatar-visor');
+            const eyes = document.getElementById('avatar-eyes');
+            const avatarSvg = document.getElementById('agent-avatar-svg');
+            
+            if (expression === 'focused') {
+                visor.setAttribute('fill', '#d6ff38');
+                eyes.setAttribute('y1', '47'); eyes.setAttribute('y2', '47');
+                avatarSvg.style.transform = 'scale(1)';
+            } else if (expression === 'thinking') {
+                visor.setAttribute('fill', '#00f0ff');
+                eyes.setAttribute('y1', '44'); eyes.setAttribute('y2', '50');
+                avatarSvg.style.transform = 'rotate(-5deg)';
+            } else if (expression === 'victorious') {
+                visor.setAttribute('fill', '#4ade80');
+                eyes.setAttribute('y1', '45'); eyes.setAttribute('y2', '45');
+                avatarSvg.style.transform = 'scale(1.1)';
+            } else if (expression === 'hit') {
+                visor.setAttribute('fill', '#ff007f');
+                eyes.setAttribute('y1', '50'); eyes.setAttribute('y2', '44');
+                avatarSvg.style.transform = 'rotate(8deg)';
+            }
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initScenery();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function initScenery() {
+            stars = [];
+            for (let i = 0; i < 75; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * (canvas.height * 0.45),
+                    size: Math.random() * 2.2 + 1,
+                    speed: Math.random() * 0.7 + 0.2
+                });
+            }
+
+            buildings = [];
+            let currentX = -50;
+            while (currentX < canvas.width + 120) {
+                let w = Math.random() * 70 + 60;
+                buildings.push({
+                    x: currentX,
+                    w: w,
+                    h: Math.random() * 190 + 120,
+                    color: Math.random() > 0.5 ? 'rgba(0, 240, 255, 0.12)' : 'rgba(255, 0, 127, 0.12)',
+                    neonColor: Math.random() > 0.5 ? '#00f0ff' : '#ff007f'
+                });
+                currentX += w + Math.random() * 30;
+            }
+        }
+
+        // MATA Login Authentication Event
+        document.getElementById('btn-agent-login').onclick = () => {
+            soundFX.init();
+            soundFX.playCorrect();
+            let inputName = document.getElementById('agent-name-input').value.trim();
+            agentName = inputName || "Agent Ali";
+            
+            // Sync Agent Name across interface
+            document.getElementById('hud-agent-name').innerText = agentName.toUpperCase();
+            document.getElementById('briefing-agent-title').innerText = `WELCOME, ${agentName.toUpperCase()}`;
+            document.getElementById('agent-callsign-badge').innerText = `${agentName.toUpperCase()} ONLINE`;
+            document.getElementById('report-agent-name').innerText = agentName.toUpperCase();
+
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+            gameState = 'START';
+            setAgentExpression('focused');
+        };
+
+        function startGame() {
+            soundFX.init();
+            document.getElementById('start-screen').classList.add('hidden');
+            score = 0;
+            currentRound = 1;
+            shield = 100;
+            playerLane = 1;
+            speed = 7;
+            drones = [];
+            spawnDrone();
+            gameState = 'PLAYING';
+            setAgentExpression('focused');
+            updateHUD();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function spawnDrone() {
+            if (currentRound > totalRounds) return;
+            let lane = Math.floor(Math.random() * 3);
+            drones.push({
+                lane: lane,
+                y: -150,
+                challengeIndex: currentRound - 1,
+                active: true
+            });
+        }
+
+        function updateHUD() {
+            document.getElementById('score-display').innerText = String(score).padStart(4, '0');
+            document.getElementById('progress-display').innerText = `${currentRound}/${totalRounds}`;
+            document.getElementById('shield-bar').style.width = `${shield}%`;
+        }
+
+        function gameLoop() {
+            if (gameState === 'VICTORY') return;
+
+            animTick++;
+
+            if (gameState === 'PLAYING') {
+                roadOffset += speed * (isNitro ? 2.2 : 1);
+                if (roadOffset > 40) roadOffset = 0;
+
+                // Move drones
+                drones.forEach(drone => {
+                    drone.y += speed * (isNitro ? 1.8 : 1);
+                });
+
+                // Check Interception
+                drones.forEach(drone => {
+                    if (drone.active && drone.lane === playerLane && drone.y >= canvas.height * 0.65 && drone.y <= canvas.height * 0.85) {
+                        drone.active = false;
+                        triggerWordUnscrambleBattle(drone);
+                    }
+                });
+
+                drones = drones.filter(d => d.y < canvas.height + 100);
+                if (drones.length === 0 && currentRound <= totalRounds && gameState === 'PLAYING') {
+                    spawnDrone();
+                }
+            }
+
+            // 1. Neon Sky & Parallax Background
+            ctx.fillStyle = '#030712';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Stars
+            ctx.fillStyle = '#ffffff';
+            stars.forEach(star => {
+                if (gameState === 'PLAYING') star.y += star.speed * (isNitro ? 2 : 1);
+                if (star.y > canvas.height * 0.45) star.y = 0;
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            });
+
+            // Horizon Skyline
+            let horizonY = canvas.height * 0.42;
+            buildings.forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, horizonY - b.h, b.w, b.h);
+                ctx.strokeStyle = b.neonColor;
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(b.x, horizonY - b.h, b.w, b.h);
+            });
+
+            // Horizon Glow Gradient
+            let horizonGrad = ctx.createLinearGradient(0, horizonY - 20, 0, horizonY + 50);
+            horizonGrad.addColorStop(0, 'rgba(0, 240, 255, 0.5)');
+            horizonGrad.addColorStop(1, 'rgba(255, 0, 127, 0.05)');
+            ctx.fillStyle = horizonGrad;
+            ctx.fillRect(0, horizonY - 20, canvas.width, 70);
+
+            // 2. Pseudo-3D Perspective Road
+            let roadTopX = canvas.width * 0.36;
+            let roadTopW = canvas.width * 0.28;
+            let roadBottomX = 0;
+            let roadBottomW = canvas.width;
+
+            ctx.fillStyle = '#0a0e17';
+            ctx.beginPath();
+            ctx.moveTo(roadTopX, horizonY);
+            ctx.lineTo(roadTopX + roadTopW, horizonY);
+            ctx.lineTo(roadBottomX + roadBottomW, canvas.height);
+            ctx.lineTo(roadBottomX, canvas.height);
+            ctx.closePath();
+            ctx.fill();
+
+            // Glowing Outer Borders
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 5;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00f0ff';
+
+            ctx.beginPath();
+            ctx.moveTo(roadTopX, horizonY);
+            ctx.lineTo(roadBottomX, canvas.height);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(roadTopX + roadTopW, horizonY);
+            ctx.lineTo(roadBottomX + roadBottomW, canvas.height);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Lane Dividers
+            ctx.strokeStyle = '#ff007f';
+            ctx.lineWidth = 2.5;
+            for (let i = 1; i < 3; i++) {
+                let topDividerX = roadTopX + (roadTopW / 3) * i;
+                let bottomDividerX = roadBottomX + (roadBottomW / 3) * i;
+                
+                ctx.beginPath();
+                ctx.setLineDash([20, 20]);
+                ctx.lineDashOffset = -roadOffset * 2;
+                ctx.moveTo(topDividerX, horizonY);
+                ctx.lineTo(bottomDividerX, canvas.height);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            function getLaneX(lane, yPos) {
+                let progress = (yPos - horizonY) / (canvas.height - horizonY);
+                let currentRoadW = roadTopW + (roadBottomW - roadTopW) * progress;
+                let currentRoadX = roadTopX + (roadBottomX - roadTopX) * progress;
+                let laneWidth = currentRoadW / 3;
+                return currentRoadX + laneWidth * lane + laneWidth / 2;
+            }
+
+            // 3. Rogue Cyber Drones Rendering
+            drones.forEach(drone => {
+                if (!drone.active) return;
+                let droneY = drone.y;
+                let droneX = getLaneX(drone.lane, droneY);
+                let progress = (droneY - horizonY) / (canvas.height - horizonY);
+                let scale = Math.max(0.35, progress);
+
+                ctx.save();
+                ctx.translate(droneX, droneY);
+                ctx.scale(scale, scale);
+
+                // Outer Shield Ring
+                ctx.strokeStyle = '#ff007f';
+                ctx.lineWidth = 4;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#ff007f';
+                ctx.beginPath();
+                ctx.arc(0, 0, 38, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Core Body & Optic Beam
+                ctx.fillStyle = '#1e1b4b';
+                ctx.beginPath();
+                ctx.arc(0, 0, 28, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#00f0ff';
+                ctx.beginPath();
+                ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.restore();
+            });
+
+            // 4. Prominent Vector MATA Agent Aero-Bike
+            let playerTargetY = canvas.height * 0.76;
+            let playerTargetX = getLaneX(playerLane, playerTargetY);
+            
+            let dx = playerTargetX - playerX;
+            playerX += dx * 0.22;
+            playerY = playerTargetY;
+            laneLean = dx * 0.28; // Lean angle physics
+
+            ctx.save();
+            ctx.translate(playerX, playerY);
+            ctx.rotate((laneLean * Math.PI) / 180);
+
+            // Ground Hover Glow Shadow
+            let hoverPulse = Math.sin(animTick * 0.1) * 3;
+            ctx.fillStyle = isNitro ? 'rgba(255, 0, 127, 0.6)' : 'rgba(0, 240, 255, 0.5)';
+            ctx.beginPath();
+            ctx.ellipse(0, 50, 42 + hoverPulse, 14, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Thruster Exhaust Flares
+            ctx.fillStyle = isNitro ? '#ff007f' : '#00f0ff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = isNitro ? '#ff007f' : '#00f0ff';
+            ctx.beginPath();
+            ctx.moveTo(-18, 38);
+            ctx.lineTo(0, 60 + (isNitro ? 25 : 10) + Math.random() * 8);
+            ctx.lineTo(18, 38);
+            ctx.closePath();
+            ctx.fill();
+
+            // Aero-Bike Chassis
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, -48);
+            ctx.lineTo(26, -10);
+            ctx.lineTo(34, 28);
+            ctx.lineTo(18, 42);
+            ctx.lineTo(-18, 42);
+            ctx.lineTo(-34, 28);
+            ctx.lineTo(-26, -10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Aero Trim
+            ctx.strokeStyle = '#d6ff38';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-18, -5);
+            ctx.lineTo(0, -35);
+            ctx.lineTo(18, -5);
+            ctx.stroke();
+
+            // MATA Agent Character Torso & Helmet
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(0, -2, 16, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Armor Pads
+            ctx.fillStyle = '#00f0ff';
+            ctx.fillRect(-22, -8, 8, 12);
+            ctx.fillRect(14, -8, 8, 12);
+
+            // Agent Helmet & Visor
+            ctx.fillStyle = '#090d16';
+            ctx.beginPath();
+            ctx.arc(0, -18, 14, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#d6ff38';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#d6ff38';
+            ctx.fillRect(-10, -21, 20, 8);
+            ctx.shadowBlur = 0;
+
+            ctx.restore();
+
+            if (isNitro) {
+                nitroTimer--;
+                if (nitroTimer <= 0) isNitro = false;
+            }
+
+            if (gameState === 'PLAYING') {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function triggerWordUnscrambleBattle(drone) {
+            gameState = 'BATTLE';
+            soundFX.playCorrect();
+            setAgentExpression('thinking');
+
+            activeChallenge = grammarChallenges[drone.challengeIndex % grammarChallenges.length];
+            
+            // Set Modal Details
+            document.getElementById('challenge-round-num').innerText = currentRound;
+            document.getElementById('challenge-emoji').innerText = activeChallenge.emoji;
+            document.getElementById('item-name-tag').innerText = activeChallenge.tag;
+            
+            document.getElementById('feedback-msg').innerText = '';
+
+            // Shuffle original target sentence words into scrambled pool
+            placedTiles = [];
+            scrambledTiles = [...activeChallenge.targetSentence].sort(() => Math.random() - 0.5);
+
+            renderWordTiles();
+            document.getElementById('battle-modal').classList.remove('hidden');
+        }
+
+        function renderWordTiles() {
+            const poolContainer = document.getElementById('scrambled-pool');
+            const slotsContainer = document.getElementById('constructed-slots');
+
+            poolContainer.innerHTML = '';
+            slotsContainer.innerHTML = '';
+
+            // 1. Render Placed Target Word Tiles
+            if (placedTiles.length === 0) {
+                slotsContainer.innerHTML = `<span class="text-xs font-orbitron text-slate-500 italic">Tap words below to arrange sentence...</span>`;
+            } else {
+                placedTiles.forEach((word, index) => {
+                    let tile = document.createElement('button');
+                    tile.className = "word-tile px-3 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 border border-pink-300 text-white font-orbitron font-extrabold text-sm sm:text-base shadow-md cursor-pointer hover:bg-pink-500";
+                    tile.innerText = word;
+                    tile.onclick = () => returnTileToPool(index);
+                    slotsContainer.appendChild(tile);
+                });
+            }
+
+            // 2. Render Available Scrambled Word Pool
+            scrambledTiles.forEach((word, index) => {
+                let tile = document.createElement('button');
+                tile.className = "word-tile px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border-2 border-cyan-400 text-cyan-200 font-orbitron font-extrabold text-sm sm:text-base shadow-md cursor-pointer active:scale-95";
+                tile.innerText = word;
+                tile.onclick = () => moveTileToSlots(index);
+                poolContainer.appendChild(tile);
+            });
+        }
+
+        function moveTileToSlots(poolIndex) {
+            soundFX.playTileClick();
+            let selectedWord = scrambledTiles.splice(poolIndex, 1)[0];
+            placedTiles.push(selectedWord);
+            renderWordTiles();
+        }
+
+        function returnTileToPool(slotIndex) {
+            soundFX.playTileClick();
+            let returnedWord = placedTiles.splice(slotIndex, 1)[0];
+            scrambledTiles.push(returnedWord);
+            renderWordTiles();
+        }
+
+        document.getElementById('btn-clear-tiles').onclick = () => {
+            if (placedTiles.length === 0) return;
+            soundFX.playTileClick();
+            scrambledTiles = [...scrambledTiles, ...placedTiles];
+            placedTiles = [];
+            renderWordTiles();
+        };
+
+        document.getElementById('btn-submit-hack').onclick = () => {
+            const feedback = document.getElementById('feedback-msg');
+            
+            if (placedTiles.length === 0) {
+                feedback.innerHTML = `<span class="text-yellow-400">⚠️ Please arrange words first!</span>`;
+                return;
+            }
+
+            const constructedSentence = placedTiles.join(" ");
+            const targetSentence = activeChallenge.targetSentence.join(" ");
+
+            if (constructedSentence === targetSentence) {
+                soundFX.playCorrect();
+                setAgentExpression('victorious');
+                feedback.innerHTML = `<span class="text-green-400 glow-text">✔ FIREWALL HACKED! Correct Grammar Code (+150 Pts)</span>`;
+                score += 150;
+                updateHUD();
+                
+                setTimeout(() => {
+                    document.getElementById('battle-modal').classList.add('hidden');
+                    currentRound++;
+                    if (currentRound > totalRounds) {
+                        triggerVictory();
+                    } else {
+                        gameState = 'PLAYING';
+                        setAgentExpression('focused');
+                        spawnDrone();
+                        requestAnimationFrame(gameLoop);
+                    }
+                }, 1100);
+            } else {
+                soundFX.playWrong();
+                setAgentExpression('hit');
+                feedback.innerHTML = `<span class="text-pink-500 glow-text">❌ INCORRECT SEQUENCE! Try rearranging!</span>`;
+            }
+        };
+
+        function triggerVictory() {
+            gameState = 'VICTORY';
+            setAgentExpression('victorious');
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('cyberaya_highscore_v3', highScore);
+            }
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('high-score').innerText = highScore;
+            document.getElementById('game-over-modal').classList.remove('hidden');
+        }
+
+        // Steering & Control Listeners
+        function moveLeft() {
+            if (gameState === 'PLAYING' && playerLane > 0) {
+                playerLane--;
+                soundFX.playEngineHum();
+            }
+        }
+
+        function moveRight() {
+            if (gameState === 'PLAYING' && playerLane < 2) {
+                playerLane++;
+                soundFX.playEngineHum();
+            }
+        }
+
+        document.getElementById('btn-left').onclick = moveLeft;
+        document.getElementById('btn-right').onclick = moveRight;
+
+        document.getElementById('btn-nitro').onclick = () => {
+            if (gameState === 'PLAYING') {
+                isNitro = true;
+                nitroTimer = 100;
+                soundFX.playNitro();
+            }
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
+            if (e.key === ' ' || e.key === 'Shift') {
+                if (gameState === 'PLAYING') {
+                    isNitro = true;
+                    nitroTimer = 100;
+                    soundFX.playNitro();
+                }
+            }
+        });
+
+        // Touch Swipe
+        let touchStartX = 0;
+        window.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+
+        window.addEventListener('touchend', (e) => {
+            let touchEndX = e.changedTouches[0].clientX;
+            let diff = touchEndX - touchStartX;
+            if (Math.abs(diff) > 35) {
+                if (diff > 0) moveRight();
+                else moveLeft();
+            }
+        }, { passive: true });
+
+        document.getElementById('audio-toggle').onclick = () => {
+            soundFX.enabled = !soundFX.enabled;
+            document.getElementById('audio-icon').style.opacity = soundFX.enabled ? '1' : '0.4';
+        };
+
+        document.getElementById('start-btn').onclick = startGame;
+        document.getElementById('restart-btn').onclick = () => {
+            document.getElementById('game-over-modal').classList.add('hidden');
+            startGame();
+        };
+
+        window.onload = () => {
+            resizeCanvas();
+        };
+    </script>
+</body>
+</html>
+```
